@@ -39,9 +39,12 @@ def state_gstar(state):
         'Total population':'total_population'
     })
 
+    state_df = state_df[state_df['dac'] == 1]
+
+
     # Print Summary stats for burdens and criteria
-    # print(f"{state} Burden summary stats:\n{state_df['total_burdens'].describe()}")
-    # print(f"\n{state} Criteria summary stats:\n{state_df['total_criteria'].describe()}")
+    print(f"{state} Burden summary stats:\n{state_df['total_burdens'].describe()}")
+    print(f"\n{state} Criteria summary stats:\n{state_df['total_criteria'].describe()}")
 
 
     # Filter shapefile to state and select desired columns
