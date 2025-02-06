@@ -133,18 +133,32 @@ def state_gstar(state):
     # Third plot (bottom-left)
     axs[1, 0].axis('off')  # Hide axis for a cleaner map
     axs[1, 0].set_title(f"{state} Gstar Burden Hotspots", fontsize=14)
-    results.plot(ax=axs[1, 0], 
+    plot1 = results.plot(ax=axs[1, 0], 
                 column='standardized_gstar_burd', 
-                cmap=cmap, norm=norm, legend=True, 
-                legend_kwds={'label': 'Standardized G star'})
+                cmap=cmap, norm=norm, legend=False)
+                # legend_kwds={'label': 'Standardized G star'})
+
+    # Get the colorbar from the plot
+    cbar = plot1.get_figure().colorbar(plot1.collections[0], ax=axs[1,0])
+
+    # Modify the colorbar tick labels
+    cbar.set_ticklabels([' ', '99th+', '95th', 'low', '95th', '99th+', ' ']) 
 
     # Fourth plot (bottom-right)
     axs[1, 1].axis('off')  # Hide axis for a cleaner map
     axs[1, 1].set_title(f"{state} Gstar Criteria Hotspots", fontsize=14)
-    results.plot(ax=axs[1, 1], 
+    plot2 = results.plot(ax=axs[1, 1], 
                 column='standardized_gstar_crit', 
-                cmap=cmap, norm=norm, legend=True, 
-                legend_kwds={'label': 'Standardized G star'})
+                cmap=cmap, norm=norm, legend=False) 
+                # legend_kwds={
+                #     'label': 'Standardized G star'
+                # })
+
+    # Get the colorbar from the plot
+    cbar = plot2.get_figure().colorbar(plot2.collections[0], ax=axs[1,1])
+
+    # Modify the colorbar tick labels
+    cbar.set_ticklabels([' ', '99th+', '95th', 'low', '95th', '99th+', ' ']) 
 
     # Adjust layout to prevent overlap
     plt.tight_layout()
