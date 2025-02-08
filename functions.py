@@ -39,7 +39,10 @@ def state_gstar(state):
         'Total population':'total_population'
     })
 
-    state_df = state_df[state_df['dac'] == 1]
+    # state_df = state_df[state_df['dac'] == 1]
+
+    state_df = state_df[state_df['total_population'] > 100]
+
 
 
     # Print Summary stats for burdens and criteria
@@ -70,10 +73,10 @@ def state_gstar(state):
     w = lps.weights.Queen(state_clean['geometry'])
 
     # Run the Getis Ord test for burdens
-    gstar_burden = G_Local(state_clean['total_burdens'], w, transform='R') # Set transform=R because the queen weights are row-standardized weights.
+    gstar_burden = G_Local(state_clean['total_burdens'], w, transform='R', permutations=9999) # Set transform=R because the queen weights are row-standardized weights.
 
     # Run the Getis Ord test for criteria
-    gstar_crit = G_Local(state_clean['total_criteria'], w, transform='R')
+    gstar_crit = G_Local(state_clean['total_criteria'], w, transform='R', permutations=9999)
 
     # Add burden stats to to a new df
     results = state_clean.drop('GEOID10', axis=1).copy()
