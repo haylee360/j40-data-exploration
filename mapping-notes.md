@@ -11,3 +11,6 @@
 3. Didn't get anywhere with making an interactive map elsewhere...
     - Folium ran for 30+ minutes and never got anywhere. Worth trying again, I didn't put that much troubleshooting into it
     - Also worth checking out plotly 
+
+4. There actually are 30 burdens according to the CEJST website
+    - I guess when we filter down by state, we only really ever see approx. ~20
