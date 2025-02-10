@@ -14,3 +14,5 @@
 
 4. There actually are 30 burdens according to the CEJST website
     - I guess when we filter down by state, we only really ever see approx. ~20
+
+5. Need to filter down to just continental U.S. for G star tuning
