@@ -1,0 +1,7 @@
+This document contains instructions on how to create a Python environment and a user kernel based off the environment.
+
+1. Navigate to root directory of repository
+2. run: conda env create -f justice40-env.yml
+3. Once environment builds, activate environment by running: conda activate justice40-env
+4. Once environment is activated, create kernel by runnning: python -m ipykernel install --user --name=justice40-env --display-name="justice4-env"
+5. Test to see if kernel pops up when you open up exploration.ipynb. If it doesn't, log out then log back in.

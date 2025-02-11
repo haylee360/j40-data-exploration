@@ -1,0 +1,16 @@
+name: justice40-env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pandas
+  - geopandas
+  - matplotlib
+  - seaborn
+  - numpy
+  - libpysal
+  - esda
+  - ipykernel
+  - pyarrow
+  - pip
