@@ -1,17 +1,20 @@
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
-from matplotlib import colors
+import matplotlib.colors as mcolors
 import seaborn as sns         
 import numpy as np
 import os
 import libpysal as lps 
 from libpysal.weights import W 
 from esda.getisord import G_Local
+from functools import reduce
 
 
 def state_gstar(state):
-
+    '''
+    state: chr string of state name that you wish to calculate a g star statistic for. Using total burdens and total criteria
+    '''
     # Import data
     base_dir = "/capstone/justice40"
     # base_dir = "~/MEDS/justice40/data-exploration"
@@ -172,77 +175,79 @@ def state_gstar(state):
     plt.show()
 
 
-def burden_map(data):
+def map_burden(data):
+    # Import data
+    base_dir = "/capstone/justice40"
+    # base_dir = "~/MEDS/justice40/data-exploration"
+
+    # 2.0 communities files (from current CEJST website)
+    comm_v2 = pd.read_csv(os.path.join(base_dir, "data", "2.0-communities.csv"))
+
+    # Version 2.0 shapefile data
+    v2_geo = gpd.read_file(os.path.join(base_dir, "data", "2.0-shapefile-codebook", "usa", "usa.shp"))
+
+    # Create vector of 48 state names
     state_names = ["Alabama", "Arkansas", "Arizona", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Iowa", "Idaho", "Illinois", "Indiana", "Kansas", "Kentucky", "Louisiana", "Massachusetts", "Maryland", "Maine", "Michigan", "Minnesota", "Missouri", "Mississippi", "Montana", "North Carolina", "North Dakota", "Nebraska", "New Hampshire", "New Jersey", "New Mexico", "Nevada", "New York", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Virginia", "Vermont", "Washington", "Wisconsin", "West Virginia", "Wyoming"]
 
+    # Filter to 48 continental states
     comm_states = comm_v2[comm_v2['State/Territory'].isin(state_names)]
 
     # Climate Change
-    cc = comm_states[['Expected agricultural loss rate (Natural Hazards Risk Index) (percentile)', 
+    df = comm_states[['Expected agricultural loss rate (Natural Hazards Risk Index) (percentile)', 
                 'Expected building loss rate (Natural Hazards Risk Index) (percentile)', 
                 'Expected population loss rate (Natural Hazards Risk Index) (percentile)', 
                 'Share of properties at risk of flood in 30 years (percentile)', 
                 'Share of properties at risk of fire in 30 years (percentile)',
-                # 'GEOID10_TRACT',
                 'State/Territory',
                 'Census tract 2010 ID']]
-    cc =cc.rename(columns={
-        'Expected agricultural loss rate (Natural Hazards Risk Index) (percentile)':'ag_loss', 
-        'Expected building loss rate (Natural Hazards Risk Index) (percentile)':'building_loss', 
-        'Expected population loss rate (Natural Hazards Risk Index) (percentile)':'population_loss', 
-        'Share of properties at risk of flood in 30 years (percentile)':'flood_risk', 
-        'Share of properties at risk of fire in 30 years (percentile)':'fire_risk',
-        'Census tract 2010 ID':'tract_id',
-        'State/Territory':'state'
-    })
-    cc['cc_mean'] = cc[['ag_loss', 'building_loss', 'population_loss', 'flood_risk', 'fire_risk']].mean(axis=1)
+    df['mean'] = df[['ag_loss', 'building_loss', 'population_loss', 'flood_risk', 'fire_risk']].mean(axis=1)
 
     # geometry, GEOID10
     geo_join = v2_geo[['GEOID10', 'geometry']].rename(columns={'GEOID10':'tract_id'})
     geo_join['tract_id'] =geo_join['tract_id'].astype('int64')
-    geo_join.head()
 
     # Merge dfs and reapply geodataframe
-    cc = pd.merge(cc, geo_join, how='left', on='tract_id')
-    cc = gpd.GeoDataFrame(cc)
+    df = pd.merge(df, geo_join, how='left', on='tract_id')
+    df = gpd.GeoDataFrame(df)
 
     # Drop geometry NAs
-    cc_clean = cc[(cc.geometry.type == 'Polygon') |( cc.geometry.type == 'MultiPolygon')]
-
-    # Confirm our geometries are correct
-    cc_clean.geom_type.unique()
+    df_clean = df[(df.geometry.type == 'Polygon') |( df.geometry.type == 'MultiPolygon')]
 
     # Remove NAs for G star calc
-    cc_clean = cc_clean.dropna(subset=['cc_mean'])
+    df_clean = df_clean.dropna(subset=['mean'])
 
     # Create weights using Queen method 
-    w = lps.weights.Queen(cc_clean['geometry'])
+    w = lps.weights.Queen(df_clean['geometry'])
 
     # Run the Getis Ord test for burdens
-    g_local = G_Local(cc_clean['cc_mean'], w=w, transform='R', permutations=9999)
-
+    g_local = G_Local(df_clean['mean'], w=w, transform='R', permutations=9999)
 
     # Add statistics to to a new df
-    results = cc_clean.copy()
-    # results['original_g_star'] = g_local.Gs # I think this is the old school g score we're not actually going to use
+    results = df_clean.copy()
     results['standardized_gstar'] = g_local.Zs 
     results['p_norm'] = g_local.p_norm 
+    results['p_sim'] = g_local.p_sim
 
-    # Define your custom bins (values for standardized_g_star)
-    bins = [-3, -2.58, -1.96, 0, 1.96, 2.58, 3]
+    # PLOT 
 
-    # Create a colormap
-    cmap = plt.get_cmap('RdBu_r')
+    # Define 5 distinct colors
+    colors = ["#0000bf", "#4b4bfd", "#efeada", "#e85858", "#a60202"]  # Dark Blue, Blue, Tan, Red, Dark Red
 
-    # Create a norm to map standardized_g_star values to the bins
-    norm = colors.BoundaryNorm(boundaries=bins, ncolors=cmap.N)
+    # Create a discrete colormap
+    cmap = mcolors.ListedColormap(colors)
+
+    # Define color boundaries
+    # bounds = [0, 1, 2, 3, 4, 5]  # 5 bins
+    bounds = [-3, -2.58, -1.96, 1.96, 2.58, 3]
+    norm = mcolors.BoundaryNorm(bounds, cmap.N)
+
 
     # Initialize figure
     fig, ax = plt.subplots(figsize=(9,5))
 
     # Remove axis for a cleaner map and set title
     ax.axis('off')
-    ax.set_title('G Star Heatmap',
+    ax.set_title('Climate Change G Star Heatmap',
                 fontsize=14)
 
     # Plot NY state and color by number of spills 
@@ -257,9 +262,10 @@ def burden_map(data):
 
 
     # Get the colorbar from the plot
-    # cbar = plot.get_figure().colorbar(plot.collections[0], ax=ax)
+    cbar = plot.get_figure().colorbar(plot.collections[0], ax=ax)
 
     # # Modify the colorbar tick labels
-    # cbar.set_ticklabels([' ', '99th+', '95th', 'low', '95th', '99th+', ' ']) 
+    cbar.set_ticks([-2.78, -2.27, 0, 2.27, 2.78])
+    cbar.set_ticklabels(['Cold Spot 99%+', 'Cold Spot 95%', 'Not Significant', 'Hot Spot 95%', 'Hot Spot 99%+']) 
 
     plt.show()
