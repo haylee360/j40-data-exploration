@@ -55,10 +55,12 @@ def state_gstar(state):
     state_geo = state_geo[['GEOID10', 'geometry']]
 
     # Change census tract id type so we can merge later on
-    state_geo['GEOID10'] = state_geo['GEOID10'].astype('int64')
+    state_geo = state_geo.rename(columns={'GEOID10':'tract_id'})
+    state_geo['tract_id'] = state_geo['tract_id'].astype('int64')
+    
 
     # Merge geometry df and burden df
-    state_complete = pd.merge(state_df, state_geo, left_on='tract_id', right_on='GEOID10')
+    state_complete = pd.merge(state_df, state_geo, on='tract_id')
 
     # At some point, we lost our geodataframe type. Add it back so we can map
     # I think this was because of the merge, I just didn't wanna go back and fix it
@@ -79,7 +81,7 @@ def state_gstar(state):
     gstar_crit = G_Local(state_clean['total_criteria'], w, transform='R', permutations=9999)
 
     # Add burden stats to to a new df
-    results = state_clean.drop('GEOID10', axis=1).copy()
+    results = state_clean.drop('tract_id', axis=1).copy()
     results['standardized_gstar_burd'] = gstar_burden.Zs 
     results['p_norm_burd'] = gstar_burden.p_norm # p-value assuming normal distribution
 
@@ -169,3 +171,95 @@ def state_gstar(state):
     # Show the final figure
     plt.show()
 
+
+def burden_map(data):
+    state_names = ["Alabama", "Arkansas", "Arizona", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Iowa", "Idaho", "Illinois", "Indiana", "Kansas", "Kentucky", "Louisiana", "Massachusetts", "Maryland", "Maine", "Michigan", "Minnesota", "Missouri", "Mississippi", "Montana", "North Carolina", "North Dakota", "Nebraska", "New Hampshire", "New Jersey", "New Mexico", "Nevada", "New York", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Virginia", "Vermont", "Washington", "Wisconsin", "West Virginia", "Wyoming"]
+
+    comm_states = comm_v2[comm_v2['State/Territory'].isin(state_names)]
+
+    # Climate Change
+    cc = comm_states[['Expected agricultural loss rate (Natural Hazards Risk Index) (percentile)', 
+                'Expected building loss rate (Natural Hazards Risk Index) (percentile)', 
+                'Expected population loss rate (Natural Hazards Risk Index) (percentile)', 
+                'Share of properties at risk of flood in 30 years (percentile)', 
+                'Share of properties at risk of fire in 30 years (percentile)',
+                # 'GEOID10_TRACT',
+                'State/Territory',
+                'Census tract 2010 ID']]
+    cc =cc.rename(columns={
+        'Expected agricultural loss rate (Natural Hazards Risk Index) (percentile)':'ag_loss', 
+        'Expected building loss rate (Natural Hazards Risk Index) (percentile)':'building_loss', 
+        'Expected population loss rate (Natural Hazards Risk Index) (percentile)':'population_loss', 
+        'Share of properties at risk of flood in 30 years (percentile)':'flood_risk', 
+        'Share of properties at risk of fire in 30 years (percentile)':'fire_risk',
+        'Census tract 2010 ID':'tract_id',
+        'State/Territory':'state'
+    })
+    cc['cc_mean'] = cc[['ag_loss', 'building_loss', 'population_loss', 'flood_risk', 'fire_risk']].mean(axis=1)
+
+    # geometry, GEOID10
+    geo_join = v2_geo[['GEOID10', 'geometry']].rename(columns={'GEOID10':'tract_id'})
+    geo_join['tract_id'] =geo_join['tract_id'].astype('int64')
+    geo_join.head()
+
+    # Merge dfs and reapply geodataframe
+    cc = pd.merge(cc, geo_join, how='left', on='tract_id')
+    cc = gpd.GeoDataFrame(cc)
+
+    # Drop geometry NAs
+    cc_clean = cc[(cc.geometry.type == 'Polygon') |( cc.geometry.type == 'MultiPolygon')]
+
+    # Confirm our geometries are correct
+    cc_clean.geom_type.unique()
+
+    # Remove NAs for G star calc
+    cc_clean = cc_clean.dropna(subset=['cc_mean'])
+
+    # Create weights using Queen method 
+    w = lps.weights.Queen(cc_clean['geometry'])
+
+    # Run the Getis Ord test for burdens
+    g_local = G_Local(cc_clean['cc_mean'], w=w, transform='R', permutations=9999)
+
+
+    # Add statistics to to a new df
+    results = cc_clean.copy()
+    # results['original_g_star'] = g_local.Gs # I think this is the old school g score we're not actually going to use
+    results['standardized_gstar'] = g_local.Zs 
+    results['p_norm'] = g_local.p_norm 
+
+    # Define your custom bins (values for standardized_g_star)
+    bins = [-3, -2.58, -1.96, 0, 1.96, 2.58, 3]
+
+    # Create a colormap
+    cmap = plt.get_cmap('RdBu_r')
+
+    # Create a norm to map standardized_g_star values to the bins
+    norm = colors.BoundaryNorm(boundaries=bins, ncolors=cmap.N)
+
+    # Initialize figure
+    fig, ax = plt.subplots(figsize=(9,5))
+
+    # Remove axis for a cleaner map and set title
+    ax.axis('off')
+    ax.set_title('G Star Heatmap',
+                fontsize=14)
+
+    # Plot NY state and color by number of spills 
+    plot = results.plot(ax=ax,
+                    column='standardized_gstar',
+                    cmap=cmap,
+                    norm=norm,
+                    legend=False)
+                    # legend_kwds={
+                    #     'label':'Number of Burdens'
+                    # })
+
+
+    # Get the colorbar from the plot
+    # cbar = plot.get_figure().colorbar(plot.collections[0], ax=ax)
+
+    # # Modify the colorbar tick labels
+    # cbar.set_ticklabels([' ', '99th+', '95th', 'low', '95th', '99th+', ' ']) 
+
+    plt.show()
