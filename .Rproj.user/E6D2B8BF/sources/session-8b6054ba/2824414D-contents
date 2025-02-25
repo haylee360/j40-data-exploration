@@ -1,0 +1,90 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(here)
+library(sysfonts)
+library(showtext)
+library(glue)
+library(ggtext)
+```
+
+
+```{r}
+dem <- read_csv(here("demographics", "dem_melted.csv"))
+
+dem_small <- sample_n(dem, 100)
+write_csv(dem_small, "~/Downloads/dem_small.csv")
+```
+
+```{r}
+my_pal_named = c("american_indian_alaska_native" = "#972843", 
+                "black" = "#DC267F", 
+                "native_hawaiian_pacific_islander" = "#741CD6", 
+                "two_or_more_races" = "#46265c", 
+                "asian" = "#6d8ef7", 
+                "hispanic_latino" = "#9CBF5D", 
+                "other_races" = "#1E6A9C", 
+                "white" = "#FE6100"
+)
+```
+
+```{r}
+font_add_google(name = "Lexend", family = "lexend")
+font_add_google(name = "Poppins", family = "poppins")
+
+#....................import Font Awesome fonts...................
+font_add(family = "fa-brands",
+         regular = here::here("fonts", "Font Awesome 6 Brands-Regular-400.otf"))
+font_add(family = "fa-regular",
+         regular = here::here("fonts", "Font Awesome 6 Free-Regular-400.otf")) 
+font_add(family = "fa-solid",
+         regular = here::here("fonts", "Font Awesome 6 Free-Solid-900.otf"))
+
+```
+
+
+```{r}
+
+ggplot(dem, aes(x = total_burdens, y = percentage, fill = racial_group)) +
+  geom_col(width = 0.8, position = "fill") +
+  scale_fill_manual(values = my_pal_named) + # use color palette from earlier
+  labs(
+    title = "Proportional Distribution of Burdens by Racial Group",
+    x = "Total Burdens",
+    y = "Proportion",
+    fill = "Racial Group"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    text = element_text(size = 14, family = "fa-brands")
+  )
+
+```
+
+```{r}
+
+ggplot(dem, aes(x = racial_group, y = total_burdens, fill = racial_group)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +  # Boxplot with transparency
+  # geom_jitter(alpha = 0.3, width = 0.2) +  # Adds individual data points
+  scale_fill_manual(values = my_pal_named) + # use color palette from earlier
+  labs(
+    title = "Distribution of Total Burdens by Racial Group",
+    x = "Racial Group",
+    y = "Total Burdens",
+    fill = "Racial Group"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",  # Hides legend since color is redundant
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    text = element_text(size = 14)
+  )
+
+```
+
