@@ -2,7 +2,5 @@
 "0","library(here)"
 "0","library(sysfonts)"
 "0","library(showtext)"
-"2","Loading required package: showtextdb
-"
 "0","library(glue)"
 "0","library(ggtext)"

@@ -17,21 +17,41 @@ library(ggtext)
 ```{r}
 dem <- read_csv(here("demographics", "dem_melted.csv"))
 
+# Enable showtext
+showtext_auto()
+
+# Ensure showtext is used
+showtext_opts(dpi = 300)
+
 dem_small <- sample_n(dem, 100)
 write_csv(dem_small, "~/Downloads/dem_small.csv")
 ```
 
+
 ```{r}
-my_pal_named = c("american_indian_alaska_native" = "#972843", 
-                "black" = "#DC267F", 
-                "native_hawaiian_pacific_islander" = "#741CD6", 
-                "two_or_more_races" = "#46265c", 
-                "asian" = "#6d8ef7", 
-                "hispanic_latino" = "#9CBF5D", 
-                "other_races" = "#1E6A9C", 
-                "white" = "#FE6100"
+dem <- dem %>% 
+  mutate(racial_group = str_replace_all(racial_group, "_", " "),
+         racial_group = str_to_title(racial_group),
+         racial_group = str_replace(racial_group, "Black", "Black or African American"),
+         racial_group = str_replace(racial_group, "American Indian Alaskan Native", "American Indian and Alaskan Native"),
+         racial_group = str_replace(racial_group, "Native Hawaiian Pacific Islander", "Native Hawaiian and Pacific Islander"),
+         racial_group = str_replace(racial_group, "Other Races", "Some Other Race"),
+         racial_group = str_replace(racial_group, "Hispanic Latino", "Hispanic or Latino"))
+```
+
+
+```{r}
+my_pal_named = c("American Indian and Alaskan Native" = "#972843", 
+                "Black or African American" = "#DC267F", 
+                "Native Hawaiian and Pacific Islander" = "#741CD6", 
+                "Two Or More Races" = "#46265c", 
+                "Asian" = "#6d8ef7", 
+                "Hispanic or Latino" = "#9CBF5D", 
+                "Some Other Race" = "#1E6A9C", 
+                "White" = "#FE6100"
 )
 ```
+
 
 ```{r}
 font_add_google(name = "Lexend", family = "lexend")
@@ -50,22 +70,52 @@ font_add(family = "fa-solid",
 
 ```{r}
 
-ggplot(dem, aes(x = total_burdens, y = percentage, fill = racial_group)) +
+dem_plot <- ggplot(dem, aes(x = total_burdens, y = percentage, fill = racial_group)) +
   geom_col(width = 0.8, position = "fill") +
-  scale_fill_manual(values = my_pal_named) + # use color palette from earlier
+  scale_fill_manual(values = my_pal_named, labels = c(
+    "American Indian and Alaskan Native" = "America Indian\nAlaskan Native", 
+                "Black or African American" = "Black", 
+                "Native Hawaiian and Pacific Islander" = "Native Hawaiian\nPacific Islander", 
+                "Two Or More Races" = "2+ Races", 
+                "Asian" = "Asian", 
+                "Hispanic or Latino" = "Hispanic\nLatino", 
+                "Some Other Race" = "Other", 
+                "White" = "White"
+  )) + # use color palette from earlier
   labs(
-    title = "Proportional Distribution of Burdens by Racial Group",
+    title = "Distribution of Total Burdens by Racial Group",
     x = "Total Burdens",
     y = "Proportion",
-    fill = "Racial Group"
+    fill = "Racial\nGroup"
   ) +
   theme_minimal() +
   theme(
+    text = element_text(family = "lexend"),
     legend.position = "top",
-    text = element_text(size = 14, family = "fa-brands")
+    plot.title = element_text(size = 18),
+    # legend.title = element_text(size = 13),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 13),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 11, color = "black"),
+    plot.background = element_rect(fill = "white", color = NA),
+
   )
 
 ```
+
+```{r}
+ggsave(
+  filename = here::here("images", "dem.png"),
+  plot = dem_plot, 
+  device = "png",
+  width = 10, 
+  height = 6,
+  unit = "in",
+  dpi = 300,
+)
+```
+
 
 ```{r}
 

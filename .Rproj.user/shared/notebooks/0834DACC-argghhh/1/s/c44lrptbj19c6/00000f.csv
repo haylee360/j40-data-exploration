@@ -1,5 +1,0 @@
-"0","dem_small <- sample(dem, 100)
-"
-"2","Error in sample.int(length(x), size, replace, prob) : 
-  cannot take a sample larger than the population when 'replace = FALSE'
-"
