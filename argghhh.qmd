@@ -11,11 +11,13 @@ library(sysfonts)
 library(showtext)
 library(glue)
 library(ggtext)
+library(scales)
 ```
 
 
 ```{r}
 dem <- read_csv(here("demographics", "dem_melted.csv"))
+dem_wide <- read_csv(here("demographics", "dem_wide.csv"))
 
 # Enable showtext
 showtext_auto()
@@ -28,23 +30,49 @@ showtext_opts(dpi = 300)
 ```
 
 ```{r}
-dem <- dem %>% 
-  mutate(other_races = other_races + two_or_more_races)
+dem_wide <- dem_wide %>% 
+  mutate(other_races = other_races + two_or_more_races) %>% 
+  select(!two_or_more_races)
+
+dem_long <- dem_wide %>% 
+  pivot_longer(cols = c(black, american_indian_alaskan_native, asian, 
+             native_hawaiian_pacific_islander, 
+             white, hispanic_latino, other_races),
+    names_to = "racial_group",
+    values_to = "percentage")
+```
+
+```{r}
+dem <- dem_long %>% 
+  select(racial_group, percentage, total_burdens, total_criteria, total_population, tract_id, dac)
 ```
 
 
 ```{r}
 dem <- dem %>% 
-  mutate(racial_group = str_replace_all(racial_group, "_", " "),
-         racial_group = str_to_title(racial_group),
-         racial_group = str_replace(racial_group, "Black", "Black or African American"),
-         racial_group = str_replace(racial_group, "American Indian Alaskan Native", "American Indian and Alaskan Native"),
-         racial_group = str_replace(racial_group, "Native Hawaiian Pacific Islander", "Native Hawaiian and Pacific Islander"),
-         racial_group = str_replace(racial_group, "Other Races", "Some Other Race"),
-         racial_group = str_replace(racial_group, "Hispanic Latino", "Hispanic or Latino"))
+  mutate(racial_group = str_replace(racial_group, "asian", "Asian"),
+         racial_group = str_replace(racial_group, "black", "Black or African American"),
+         racial_group = str_replace(racial_group, "american_indian_alaskan_native", "American Indian and Alaskan Native"),
+         racial_group = str_replace(racial_group, "native_hawaiian_pacific_islander", "Native Hawaiian and Pacific Islander"),
+         racial_group = str_replace(racial_group, "other_races", "Other Race"),
+         racial_group = str_replace(racial_group, "hispanic_latino", "Hispanic or Latino"),
+         racial_group = str_replace(racial_group, "white", "White (Non-Hispanic)"))
 
-# After fixing names, combine other and 2+
-dem <- dem %>% 
+dem$racial_group <- factor(dem$racial_group, 
+                           levels = c(
+                             "American Indian and Alaskan Native",
+                             "Native Hawaiian and Pacific Islander",
+                             "Asian",
+                             "Other Race",
+                             "Hispanic or Latino",
+                             "Black or African American",
+                             "White (Non-Hispanic)"
+                             ), 
+                           ordered = TRUE) 
+
+# racial_group = str_replace_all(racial_group, "_", " "),
+#          racial_group = str_to_title(racial_group),
+
 ```
 
 
@@ -52,11 +80,11 @@ dem <- dem %>%
 my_pal_named = c("American Indian and Alaskan Native" = "#972843", 
                 "Black or African American" = "#DC267F", 
                 "Native Hawaiian and Pacific Islander" = "#741CD6", 
-                "Two Or More Races" = "#46265c", 
+                # "Two Or More Races" = "#46265c", 
                 "Asian" = "#6d8ef7", 
                 "Hispanic or Latino" = "#9CBF5D", 
-                "Some Other Race" = "#1E6A9C", 
-                "White" = "#FE6100"
+                "Other Race" = "#1E6A9C", 
+                "White (Non-Hispanic)" = "#FE6100"
 )
 ```
 
@@ -77,19 +105,19 @@ font_add(family = "fa-solid",
 
 
 ```{r}
-
-dem_plot <- ggplot(dem, aes(x = total_burdens, y = percentage, fill = racial_group)) +
+# Burden plot
+dem_plot_burd <- ggplot(dem, aes(x = total_burdens, y = percentage, fill = racial_group)) +
   geom_col(width = 0.8, position = "fill") +
   scale_fill_manual(values = my_pal_named, labels = c(
-    "American Indian and Alaskan Native" = "America Indian\nAlaskan Native", 
-                "Black or African American" = "Black", 
+    "American Indian and Alaskan Native" = "American Indian\nAlaskan Native", 
+                "Black or African American" = "Black\nAfrican American", 
                 "Native Hawaiian and Pacific Islander" = "Native Hawaiian\nPacific Islander", 
-                "Two Or More Races" = "2+ Races", 
                 "Asian" = "Asian", 
                 "Hispanic or Latino" = "Hispanic\nLatino", 
-                "Some Other Race" = "Other", 
-                "White" = "White"
+                "Other Race" = "Other Race", 
+                "White (Non-Hispanic)" = "White\n(Non-Hispanic)"
   )) + # use color palette from earlier
+  scale_x_continuous(breaks = seq(0,8,1)) +
   labs(
     title = "Distribution of Total Burdens by Racial Group",
     x = "Total Burdens",
@@ -105,16 +133,17 @@ dem_plot <- ggplot(dem, aes(x = total_burdens, y = percentage, fill = racial_gro
     legend.title = element_blank(),
     legend.text = element_text(size = 13),
     axis.title = element_text(size = 12),
-    axis.text = element_text(size = 11, color = "black"),
+    axis.text = element_text(size = 12, color = "black"),
     plot.background = element_rect(fill = "white", color = NA),
-
+    panel.grid = element_blank(), 
+    axis.line = element_line(linewidth = 0.5, color = "grey20") 
   )
-
+dem_plot_burd
 ```
 
 ```{r}
 ggsave(
-  filename = here::here("images", "dem.png"),
+  filename = here::here("images", "dem_burd.png"),
   plot = dem_plot, 
   device = "png",
   width = 10, 
@@ -124,25 +153,152 @@ ggsave(
 )
 ```
 
-
 ```{r}
-
-ggplot(dem, aes(x = racial_group, y = total_burdens, fill = racial_group)) +
-  geom_boxplot(outlier.shape = NA, alpha = 0.7) +  # Boxplot with transparency
-  # geom_jitter(alpha = 0.3, width = 0.2) +  # Adds individual data points
-  scale_fill_manual(values = my_pal_named) + # use color palette from earlier
+# Indicator plot
+dem_plot_ind <- ggplot(dem, aes(x = total_criteria, y = percentage, fill = racial_group)) +
+  geom_col(width = 0.8, position = "fill") +
+  scale_fill_manual(values = my_pal_named, labels = c(
+    "American Indian and Alaskan Native" = "American Indian\nAlaskan Native", 
+                "Black or African American" = "Black\nAfrican American", 
+                "Native Hawaiian and Pacific Islander" = "Native Hawaiian\nPacific Islander", 
+                "Asian" = "Asian", 
+                "Hispanic or Latino" = "Hispanic\nLatino", 
+                "Other Race" = "Other Race", 
+                "White (Non-Hispanic)" = "White\n(Non-Hispanic)"
+  )) + # use color palette from earlier
+  scale_x_continuous(breaks = seq(0,18,1)) +
   labs(
-    title = "Distribution of Total Burdens by Racial Group",
-    x = "Racial Group",
-    y = "Total Burdens",
-    fill = "Racial Group"
+    title = "Distribution of Total Indicators by Racial Group",
+    x = "Total Indicators",
+    y = "Proportion",
+    fill = "Racial\nGroup"
   ) +
   theme_minimal() +
   theme(
-    legend.position = "none",  # Hides legend since color is redundant
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    text = element_text(size = 14)
+    text = element_text(family = "lexend"),
+    legend.position = "top",
+    plot.title = element_text(size = 18),
+    # legend.title = element_text(size = 13),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 13),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 12, color = "black"),
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid = element_blank(), 
+    axis.line = element_line(linewidth = 0.5, color = "grey20") 
   )
+dem_plot_ind
+```
+
+```{r}
+ggsave(
+  filename = here::here("images", "dem_ind.png"),
+  plot = dem_plot_ind, 
+  device = "png",
+  width = 10, 
+  height = 6,
+  unit = "in",
+  dpi = 300,
+)
+```
+
+```{r}
+
+dem$dac <- factor(dem$dac, levels = c(TRUE, FALSE), labels = c("DAC", "Non-DAC"))
 
 ```
 
+
+```{r}
+# DAC plot
+dac_plot <- ggplot(dem, aes(x = dac, y = percentage, fill = racial_group, group = dac)) +
+  geom_col(width = 0.8, position = "fill") +
+  scale_fill_manual(values = my_pal_named, labels = c(
+    "American Indian and Alaskan Native" = "American Indian\nAlaskan Native", 
+                "Black or African American" = "Black\nAfrican American", 
+                "Native Hawaiian and Pacific Islander" = "Native Hawaiian\nPacific Islander", 
+                "Asian" = "Asian", 
+                "Hispanic or Latino" = "Hispanic\nLatino", 
+                "Other Race" = "Other Race", 
+                "White (Non-Hispanic)" = "White\n(Non-Hispanic)"
+  )) + # use color palette from earlier
+  # scale_x_continuous(breaks = seq(0,8,1)) +
+  labs(
+    title = "Distribution of Total Burdens by Disadvantaged Status",
+    x = "DAC",
+    y = "Proportion",
+    fill = "Racial\nGroup"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "lexend"),
+    legend.position = "top",
+    plot.title = element_text(size = 18),
+    # legend.title = element_text(size = 13),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 13),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 12, color = "black"),
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid = element_blank(), 
+    axis.line = element_line(linewidth = 0.5, color = "grey20") 
+  )
+dac_plot
+```
+
+
+
+
+```{r}
+# Population plot
+pop_plot <- ggplot(dem, aes(x = total_burdens, y = total_population, group = total_burdens)) +
+  geom_col(width = 0.8, fill = "#46265c") +
+  scale_x_continuous(breaks = seq(0,8,1)) +
+  # scale_y_continuous(labels = function(x) {
+  #   formatted_labels <- ifelse(
+  #     round(x, -1000) == 500000, "500,000", 
+  #     ifelse(round(x, -1000) == 1000000, "1 M", 
+  #            label_number(scale = 1e-9, suffix = " M")(x))
+  #   )
+  #   return(formatted_labels)
+  # }) +
+  scale_y_continuous(labels = function(x) {
+    case_when(
+      x == 0 ~ "0",
+      near(x, 5e5) ~ "1/2 M",
+      near(x, 1e6) ~ "1 M",
+      TRUE ~ label_number(scale = 1e-9, suffix = " M")(x)  # Default formatting
+    )
+  }) +
+  labs(
+    title = "Total Population by Total Burdens",
+    x = "Total Burdens",
+    y = "Total Population") +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "lexend"),
+    legend.position = "top",
+    plot.title = element_text(size = 18),
+    # legend.title = element_text(size = 13),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 13),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 12, color = "black"),
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid = element_blank(), 
+    axis.line = element_line(linewidth = 0.5, color = "grey20") 
+  )
+pop_plot
+```
+
+```{r}
+ggsave(
+  filename = here::here("images", "pop.png"),
+  plot = pop_plot, 
+  device = "png",
+  width = 10, 
+  height = 6,
+  unit = "in",
+  dpi = 300,
+)
+```
