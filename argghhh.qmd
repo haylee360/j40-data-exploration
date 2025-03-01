@@ -23,8 +23,13 @@ showtext_auto()
 # Ensure showtext is used
 showtext_opts(dpi = 300)
 
-dem_small <- sample_n(dem, 100)
-write_csv(dem_small, "~/Downloads/dem_small.csv")
+# dem_small <- sample_n(dem, 100)
+# write_csv(dem_small, "~/Downloads/dem_small.csv")
+```
+
+```{r}
+dem <- dem %>% 
+  mutate(other_races = other_races + two_or_more_races)
 ```
 
 
@@ -37,6 +42,9 @@ dem <- dem %>%
          racial_group = str_replace(racial_group, "Native Hawaiian Pacific Islander", "Native Hawaiian and Pacific Islander"),
          racial_group = str_replace(racial_group, "Other Races", "Some Other Race"),
          racial_group = str_replace(racial_group, "Hispanic Latino", "Hispanic or Latino"))
+
+# After fixing names, combine other and 2+
+dem <- dem %>% 
 ```
 
 
