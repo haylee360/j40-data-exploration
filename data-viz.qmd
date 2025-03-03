@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Data visualization for faculty review"
 format: html
 editor: visual
 ---
@@ -14,6 +14,7 @@ library(ggtext)
 library(scales)
 ```
 
+### Data and theme
 
 ```{r}
 dem <- read_csv(here("demographics", "dem_melted.csv"))
@@ -28,6 +29,34 @@ showtext_opts(dpi = 300)
 # dem_small <- sample_n(dem, 100)
 # write_csv(dem_small, "~/Downloads/dem_small.csv")
 ```
+```{r}
+my_pal_named = c("American Indian and Alaskan Native" = "#972843", 
+                "Black or African American" = "#DC267F", 
+                "Native Hawaiian and Pacific Islander" = "#741CD6", 
+                # "Two Or More Races" = "#46265c", 
+                "Asian" = "#6d8ef7", 
+                "Hispanic or Latino" = "#9CBF5D", 
+                "Other Race" = "#1E6A9C", 
+                "White (Non-Hispanic)" = "#FE6100"
+)
+```
+
+
+```{r}
+font_add_google(name = "Lexend", family = "lexend")
+font_add_google(name = "Poppins", family = "poppins")
+
+#....................import Font Awesome fonts...................
+font_add(family = "fa-brands",
+         regular = here::here("fonts", "Font Awesome 6 Brands-Regular-400.otf"))
+font_add(family = "fa-regular",
+         regular = here::here("fonts", "Font Awesome 6 Free-Regular-400.otf")) 
+font_add(family = "fa-solid",
+         regular = here::here("fonts", "Font Awesome 6 Free-Solid-900.otf"))
+
+```
+
+### Data wrangling
 
 ```{r}
 dem_wide <- dem_wide %>% 
@@ -76,33 +105,7 @@ dem$racial_group <- factor(dem$racial_group,
 ```
 
 
-```{r}
-my_pal_named = c("American Indian and Alaskan Native" = "#972843", 
-                "Black or African American" = "#DC267F", 
-                "Native Hawaiian and Pacific Islander" = "#741CD6", 
-                # "Two Or More Races" = "#46265c", 
-                "Asian" = "#6d8ef7", 
-                "Hispanic or Latino" = "#9CBF5D", 
-                "Other Race" = "#1E6A9C", 
-                "White (Non-Hispanic)" = "#FE6100"
-)
-```
-
-
-```{r}
-font_add_google(name = "Lexend", family = "lexend")
-font_add_google(name = "Poppins", family = "poppins")
-
-#....................import Font Awesome fonts...................
-font_add(family = "fa-brands",
-         regular = here::here("fonts", "Font Awesome 6 Brands-Regular-400.otf"))
-font_add(family = "fa-regular",
-         regular = here::here("fonts", "Font Awesome 6 Free-Regular-400.otf")) 
-font_add(family = "fa-solid",
-         regular = here::here("fonts", "Font Awesome 6 Free-Solid-900.otf"))
-
-```
-
+### Burden plot  
 
 ```{r}
 # Burden plot
@@ -153,6 +156,8 @@ ggsave(
 )
 ```
 
+### Indicator plot
+
 ```{r}
 # Indicator plot
 dem_plot_ind <- ggplot(dem, aes(x = total_criteria, y = percentage, fill = racial_group)) +
@@ -202,16 +207,25 @@ ggsave(
 )
 ```
 
-```{r}
 
-dem$dac <- factor(dem$dac, levels = c(TRUE, FALSE), labels = c("DAC", "Non-DAC"))
+### DAC Non-DAC plot
+
+```{r}
+dem$dac <- factor(dem$dac, levels = c(FALSE, TRUE), labels = c("Non-DAC", "DAC"))
+
+dac_group <- dem %>% 
+  group_by(dac) %>% 
+  summarise(racial_group = racial_group,
+            percentage = percentage)
 
 ```
 
-
 ```{r}
 # DAC plot
-dac_plot <- ggplot(dem, aes(x = dac, y = percentage, fill = racial_group, group = dac)) +
+dac_plot <- ggplot(dac_group, aes(x = dac, 
+                            y = percentage, 
+                            fill = racial_group, 
+                            group = racial_group)) +
   geom_col(width = 0.8, position = "fill") +
   scale_fill_manual(values = my_pal_named, labels = c(
     "American Indian and Alaskan Native" = "American Indian\nAlaskan Native", 
@@ -236,6 +250,7 @@ dac_plot <- ggplot(dem, aes(x = dac, y = percentage, fill = racial_group, group 
     plot.title = element_text(size = 18),
     # legend.title = element_text(size = 13),
     legend.title = element_blank(),
+    axis.title.x = element_blank(),
     legend.text = element_text(size = 13),
     axis.title = element_text(size = 12),
     axis.text = element_text(size = 12, color = "black"),
@@ -246,8 +261,19 @@ dac_plot <- ggplot(dem, aes(x = dac, y = percentage, fill = racial_group, group 
 dac_plot
 ```
 
+```{r}
+ggsave(
+  filename = here::here("images", "dac.png"),
+  plot = dac_plot, 
+  device = "png",
+  width = 10, 
+  height = 6,
+  unit = "in",
+  dpi = 300,
+)
+```
 
-
+### Population plot
 
 ```{r}
 # Population plot
