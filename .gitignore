@@ -6,6 +6,7 @@ data/*
 *.DS_Store
 # C extensions
 *.so
+j40-gi-star-data/*
 
 # Distribution / packaging
 .Python
