@@ -1,3 +1,6 @@
+# images in docs folder for plots
+docs/img/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
