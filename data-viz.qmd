@@ -31,11 +31,11 @@ showtext_opts(dpi = 300)
 ```
 ```{r}
 my_pal_named = c("American Indian and Alaskan Native" = "#972843", 
-                "Black or African American" = "#DC267F", 
+                "Black or African American" = "#9CBF5D", 
                 "Native Hawaiian and Pacific Islander" = "#741CD6", 
                 # "Two Or More Races" = "#46265c", 
                 "Asian" = "#6d8ef7", 
-                "Hispanic or Latino" = "#9CBF5D", 
+                "Hispanic or Latino" = "#DC267F", 
                 "Other Race" = "#1E6A9C", 
                 "White (Non-Hispanic)" = "#FE6100"
 )
@@ -112,20 +112,21 @@ dem$racial_group <- factor(dem$racial_group,
 dem_plot_burd <- ggplot(dem, aes(x = total_burdens, y = percentage, fill = racial_group)) +
   geom_col(width = 0.8, position = "fill") +
   scale_fill_manual(values = my_pal_named, labels = c(
-    "American Indian and Alaskan Native" = "American Indian\nAlaskan Native", 
-                "Black or African American" = "Black\nAfrican American", 
-                "Native Hawaiian and Pacific Islander" = "Native Hawaiian\nPacific Islander", 
-                "Asian" = "Asian", 
+    "American Indian and Alaskan Native" = "American Indian\nAlaskan Native*", 
+                "Black or African American" = "Black\nAfrican American*", 
+                "Native Hawaiian and Pacific Islander" = "Native Hawaiian\nPacific Islander*", 
+                "Asian" = "Asian*", 
                 "Hispanic or Latino" = "Hispanic\nLatino", 
-                "Other Race" = "Other Race", 
-                "White (Non-Hispanic)" = "White\n(Non-Hispanic)"
+                "Other Race" = "Other Race*", 
+                "White (Non-Hispanic)" = "White*"
   )) + # use color palette from earlier
   scale_x_continuous(breaks = seq(0,8,1)) +
   labs(
-    title = "Distribution of Total Burdens by Racial Group",
+    title = "Distribution of Total Burdens by Racial/Ethnic Group",
     x = "Total Burdens",
     y = "Proportion",
     fill = "Racial\nGroup"
+    
   ) +
   theme_minimal() +
   theme(
@@ -147,7 +148,7 @@ dem_plot_burd
 ```{r}
 ggsave(
   filename = here::here("images", "dem_burd.png"),
-  plot = dem_plot, 
+  plot = dem_plot_burd, 
   device = "png",
   width = 10, 
   height = 6,
@@ -163,17 +164,17 @@ ggsave(
 dem_plot_ind <- ggplot(dem, aes(x = total_criteria, y = percentage, fill = racial_group)) +
   geom_col(width = 0.8, position = "fill") +
   scale_fill_manual(values = my_pal_named, labels = c(
-    "American Indian and Alaskan Native" = "American Indian\nAlaskan Native", 
-                "Black or African American" = "Black\nAfrican American", 
-                "Native Hawaiian and Pacific Islander" = "Native Hawaiian\nPacific Islander", 
-                "Asian" = "Asian", 
+    "American Indian and Alaskan Native" = "American Indian\nAlaskan Native*", 
+                "Black or African American" = "Black\nAfrican American*", 
+                "Native Hawaiian and Pacific Islander" = "Native Hawaiian\nPacific Islander*", 
+                "Asian" = "Asian*", 
                 "Hispanic or Latino" = "Hispanic\nLatino", 
-                "Other Race" = "Other Race", 
-                "White (Non-Hispanic)" = "White\n(Non-Hispanic)"
+                "Other Race" = "Other Race*", 
+                "White (Non-Hispanic)" = "White*"
   )) + # use color palette from earlier
   scale_x_continuous(breaks = seq(0,18,1)) +
   labs(
-    title = "Distribution of Total Indicators by Racial Group",
+    title = "Distribution of Total Indicators by Racial/Ethnic Group",
     x = "Total Indicators",
     y = "Proportion",
     fill = "Racial\nGroup"
@@ -211,7 +212,7 @@ ggsave(
 ### DAC Non-DAC plot
 
 ```{r}
-dem$dac <- factor(dem$dac, levels = c(FALSE, TRUE), labels = c("Non-DAC", "DAC"))
+dem$dac <- factor(dem$dac, levels = c(FALSE, TRUE), labels = c("Non-DAC", "All DACs"))
 
 dac_group <- dem %>% 
   group_by(dac) %>% 
@@ -235,8 +236,7 @@ dac_plot <- ggplot(dac_group, aes(x = dac,
                 "Hispanic or Latino" = "Hispanic\nLatino", 
                 "Other Race" = "Other Race", 
                 "White (Non-Hispanic)" = "White\n(Non-Hispanic)"
-  )) + # use color palette from earlier
-  # scale_x_continuous(breaks = seq(0,8,1)) +
+  )) + 
   labs(
     title = "Distribution of Total Burdens by Disadvantaged Status",
     x = "DAC",
@@ -253,10 +253,10 @@ dac_plot <- ggplot(dac_group, aes(x = dac,
     axis.title.x = element_blank(),
     legend.text = element_text(size = 13),
     axis.title = element_text(size = 12),
-    axis.text = element_text(size = 12, color = "black"),
+    axis.text = element_text(size = 16, color = "black", face = "bold"),
     plot.background = element_rect(fill = "white", color = NA),
     panel.grid = element_blank(), 
-    axis.line = element_line(linewidth = 0.5, color = "grey20") 
+    axis.line = element_line(linewidth = 0.8, color = "black") 
   )
 dac_plot
 ```
@@ -266,18 +266,19 @@ ggsave(
   filename = here::here("images", "dac.png"),
   plot = dac_plot, 
   device = "png",
-  width = 10, 
-  height = 6,
+  width = 4, 
+  height = 8,
   unit = "in",
   dpi = 300,
 )
 ```
 
-### Population plot
+
+### Population Burdens plot
 
 ```{r}
 # Population plot
-pop_plot <- ggplot(dem, aes(x = total_burdens, y = total_population, group = total_burdens)) +
+pop_burd_plot <- ggplot(dem, aes(x = total_burdens, y = total_population, group = total_burdens)) +
   geom_col(width = 0.8, fill = "#46265c") +
   scale_x_continuous(breaks = seq(0,8,1)) +
   # scale_y_continuous(labels = function(x) {
@@ -299,7 +300,7 @@ pop_plot <- ggplot(dem, aes(x = total_burdens, y = total_population, group = tot
   labs(
     title = "Total Population by Total Burdens",
     x = "Total Burdens",
-    y = "Total Population") +
+    y = "Population") +
   theme_minimal() +
   theme(
     text = element_text(family = "lexend"),
@@ -314,13 +315,13 @@ pop_plot <- ggplot(dem, aes(x = total_burdens, y = total_population, group = tot
     panel.grid = element_blank(), 
     axis.line = element_line(linewidth = 0.5, color = "grey20") 
   )
-pop_plot
+pop_burd_plot
 ```
 
 ```{r}
 ggsave(
-  filename = here::here("images", "pop.png"),
-  plot = pop_plot, 
+  filename = here::here("images", "pop_burd.png"),
+  plot = pop_burd_plot, 
   device = "png",
   width = 10, 
   height = 6,
@@ -328,3 +329,93 @@ ggsave(
   dpi = 300,
 )
 ```
+
+### Population Indicators plot
+
+```{r}
+# Population plot
+pop_ind_plot <- ggplot(dem, aes(x = total_criteria, y = total_population, group = total_burdens)) +
+  geom_col(width = 0.8, fill = "#46265c") +
+  scale_x_continuous(breaks = seq(0,18,1)) +
+  # scale_y_continuous(labels = function(x) {
+  #   formatted_labels <- ifelse(
+  #     round(x, -1000) == 500000, "500,000", 
+  #     ifelse(round(x, -1000) == 1000000, "1 M", 
+  #            label_number(scale = 1e-9, suffix = " M")(x))
+  #   )
+  #   return(formatted_labels)
+  # }) +
+  scale_y_continuous(labels = function(x) {
+    case_when(
+      x == 0 ~ "0",
+      near(x, 5e5) ~ "1/2 M",
+      near(x, 1e6) ~ "1 M",
+      TRUE ~ label_number(scale = 1e-9, suffix = " M")(x)  # Default formatting
+    )
+  }) +
+  labs(
+    title = "Total Population by Total Indicators",
+    x = "Total Burdens",
+    y = "Population") +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "lexend"),
+    legend.position = "top",
+    plot.title = element_text(size = 18),
+    # legend.title = element_text(size = 13),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 13),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 12, color = "black"),
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid = element_blank(), 
+    axis.line = element_line(linewidth = 0.5, color = "grey20") 
+  )
+pop_ind_plot
+```
+
+```{r}
+ggsave(
+  filename = here::here("images", "pop_ind.png"),
+  plot = pop_ind_plot, 
+  device = "png",
+  width = 10, 
+  height = 6,
+  unit = "in",
+  dpi = 300,
+)
+```
+
+```{r}
+
+```
+
+
+
+### Histogram of Burdens
+```{r}
+# Histogram of Burdens plot
+hist_burd <- ggplot(dem, aes(x = total_burdens)) +
+  geom_histogram(fill = "#46265c") +
+  # scale_x_continuous(breaks = seq(0,18,1)) +
+  labs(
+    title = "Total Burdens",
+    x = "Number of Burdens",
+    y = "Count") +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "lexend"),
+    legend.position = "top",
+    plot.title = element_text(size = 18),
+    # legend.title = element_text(size = 13),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 13),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 12, color = "black"),
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.grid = element_blank(), 
+    axis.line = element_line(linewidth = 0.5, color = "grey20") 
+  )
+hist_burd
+```
+
