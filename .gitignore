@@ -9,6 +9,8 @@ data/*
 *.DS_Store
 # C extensions
 *.so
+j40-gi-star-data/*
+data/*
 
 # Distribution / packaging
 .Python
@@ -173,3 +175,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+.Rproj.user
